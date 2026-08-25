@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>CAU360 Master Tactical Suite V9.0</title>
+  <link rel="manifest" href="/app/manifest.json">
+  <meta name="theme-color" content="#090d16">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <link rel="stylesheet" href="/app/css/styles.css">
+</head>
+<body>
+  <!-- MÀN HÌNH ĐĂNG NHẬP BẢO MẬT -->
+  <div id="login-screen" style="display:flex; justify-content:center; align-items:center; min-height:90vh; padding:20px;">
+    <div class="card" style="width:100%; max-width:400px; padding:24px; border:1px solid var(--green); background:linear-gradient(145deg, #131b2e, #1a2642); box-shadow:0 10px 30px rgba(0,0,0,0.6);">
+      <div style="text-align:center; margin-bottom:20px;">
+        <span class="logo-badge" style="font-size:16px; padding:4px 12px;">CAU360</span>
+        <h2 style="color:#fff; font-size:18px; margin-top:10px;">ĐĂNG NHẬP HỆ THỐNG</h2>
+        <p style="font-size:12px; color:var(--text-muted); margin-top:4px;">Tình Báo Lò Sấy & Quản Trị Hội Viên</p>
+      </div>
+
+      <div id="login-error-msg" style="display:none; background:rgba(239,68,68,0.2); border-left:3px solid var(--red); color:#fca5a5; padding:8px; font-size:12px; border-radius:4px; margin-bottom:12px;"></div>
+
+      <label class="input-label">Tên Đăng Nhập (Username):</label>
+      <input type="text" id="login-username" class="input-field" placeholder="Nhập tên đăng nhập" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" onkeydown="if(event.key==='Enter') performLogin()">
+
+      <label class="input-label">Mật Khẩu (Password):</label>
+      <input type="password" id="login-password" class="input-field" placeholder="Nhập mật khẩu" autocomplete="current-password" autocapitalize="none" autocorrect="off" spellcheck="false" onkeydown="if(event.key==='Enter') performLogin()">
+
+      <button id="btn-submit-login" class="btn-primary" onclick="performLogin()" style="margin-top:6px; font-size:14px;">ĐĂNG NHẬP VÀO HỆ THỐNG</button>
+    </div>
+  </div>
+
+  <!-- MÀN HÌNH KHÓA KHI HẾT HẠN GÓI CƯỚC -->
+  <div id="expired-screen" style="display:none; justify-content:center; align-items:center; min-height:85vh; padding:20px;">
+    <div class="card" style="width:100%; max-width:400px; padding:24px; border:1px solid var(--red); background:rgba(239,68,68,0.1); text-align:center;">
+      <div style="font-size:36px; margin-bottom:10px;">🔒</div>
+      <h3 style="color:#f87171; margin-bottom:8px;">TÀI KHOẢN ĐÃ HẾT HẠN</h3>
+      <p style="font-size:12px; color:var(--text-muted); line-height:1.6; margin-bottom:16px;" id="expired-text">
+        Gói cước sử dụng của bạn đã hết hạn. Vui lòng liên hệ Chủ Lò (Admin) để gia hạn và tiếp tục sử dụng.
+      </p>
+      <button class="btn-primary" onclick="performLogout()">ĐĂNG XUẤT</button>
+    </div>
+  </div>
+
+  <!-- GIAO DIỆN CHÍNH (KHI ĐÃ ĐĂNG NHẬP HỢP LỆ) -->
+  <div id="main-app" class="container" style="display:none;">
+    <!-- Header -->
+    <header>
+      <div style="display:flex; align-items:center; gap:8px;">
+        <span class="logo-badge">CAU360 V9.0</span>
+        <span id="user-display-badge" style="font-size:12px; color:var(--green); font-weight:700;">👤 Admin</span>
+      </div>
+      <div style="display:flex; gap:6px; align-items:center;">
+        <button id="btn-update-app" onclick="forceAppUpdate()" class="update-btn" style="padding:4px 8px; font-size:10px;">
+          🔄 Cập Nhật
+        </button>
+        <button onclick="performLogout()" style="background:rgba(239,68,68,0.15); border:1px solid var(--red); color:#fca5a5; font-size:11px; padding:4px 8px; border-radius:8px; cursor:pointer; font-weight:700;">
+          🚪 Đăng Xuất
+        </button>
+      </div>
+    </header>
+
+    <!-- Expiration Warning Banner -->
+    <div id="expiration-alert-banner" style="display:none; background:rgba(245, 158, 11, 0.15); border:1px solid var(--yellow); padding:10px; border-radius:8px; font-size:12px; color:#fde047; margin-bottom:10px;">
+      <span style="font-size:14px;">⚠️</span> <strong>CẢNH BÁO HẠN DÙNG:</strong> Gói cước của bạn còn <strong id="banner-days-left">3</strong> ngày (hết hạn ngày <strong id="banner-exp-date">...</strong>). Vui lòng liên hệ Admin để gia hạn!
+    </div>
+
+    <!-- Live Vietcombank FX Ticker -->
+    <div class="fx-ticker" style="flex-wrap:wrap; gap:8px;">
+      <div>
+        💱 <strong>VCB CNY/VND:</strong> Bán: <span id="fx-sell" style="color:#fff; font-weight:700;">3,948.53</span> | Mua CK: <span id="fx-buy" style="color:#fff; font-weight:700;">3,825.96</span>
+      </div>
+      <div style="display:flex; align-items:center; gap:4px; font-size:11px;">
+        <span>Chuyển đổi:</span>
+        <input type="number" id="quick-cny-input" placeholder="¥ Tệ" style="width:65px; background:rgba(0,0,0,0.4); border:1px solid var(--border); color:#fff; padding:2px 4px; border-radius:4px;" oninput="quickConvertCNY()">
+        <span>=</span>
+        <strong id="quick-cny-output" style="color:var(--green);">0 đ</strong>
+      </div>
+      <span style="font-size:10px; color:var(--blue);" id="fx-time">Live XML</span>
+    </div>
+
+    <!-- TAB NAVIGATION SẮP XẾP ĐẦY ĐỦ 8 THANH CÔNG CỤ ĐỘC LẬP -->
+    <div class="tabs-nav">
+      <button class="tab-btn active" onclick="switchTab('tab-regions')">📊 Bảng Giá Đa Vùng</button>
+      <button class="tab-btn" onclick="switchTab('tab-hotspot')">🔥 Điểm Nóng 24h</button>
+      <button class="tab-btn" onclick="switchTab('tab-xinhua')">🏛️ Đối Soát Tân Hoa 3 Năm</button>
+      <button class="tab-btn" onclick="switchTab('tab-intel')">📻 Tình Báo 24h</button>
+      <button class="tab-btn" onclick="switchTab('tab-charts')">📈 Biểu Đồ 7D & Dự Báo</button>
+      <button class="tab-btn" onclick="switchTab('tab-tactics')">🛡️ Phản Đòn Thương Lái</button>
+      <button class="tab-btn" onclick="switchTab('tab-calculator')">🧮 Máy Tính Mẻ Sấy</button>
+      <button class="tab-btn" id="btn-tab-admin-users" onclick="switchTab('tab-admin-users')" style="display:none;">👥 Quản Trị & Đăng Tin</button>
+    </div>
+
+    <!-- TAB 1: BẢNG GIÁ ĐA VÙNG (HIỆN ĐẦU TIÊN KHI MỞ APP) -->
+    <div id="tab-regions" class="tab-content active">
+      <div style="display:flex; gap:8px; margin-bottom:10px;">
+        <button id="btn-show-vn" class="tab-btn active" style="flex:1;" onclick="toggleRegionView('VN')">🇻🇳 Việt Nam (8 Vùng Trọng Điểm)</button>
+        <button id="btn-show-cn" class="tab-btn" style="flex:1;" onclick="toggleRegionView('CN')">🇨🇳 Trung Quốc (Hải Nam & Hồ Nam)</button>
+      </div>
+      <div id="regions-container"></div>
+    </div>
+
+    <!-- TAB 2: ĐIỂM NÓNG 24H (2 BÀI PHÂN TÍCH CHUYÊN SÂU ĐỐI TRỌNG NHAU - MỚI NÂNG CẤP) -->
+    <div id="tab-hotspot" class="tab-content">
+      <!-- MẠNG LƯỚI 12 NGUỒN DỮ LIỆU ĐỘC LẬP (4 TẦNG KIỂM CHỨNG) -->
+      <div class="card" style="border:1px solid var(--blue); background:rgba(0,0,0,0.4); margin-bottom:14px; padding:12px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+          <strong style="color:var(--blue); font-size:13px;">🌐 MẠNG LƯỚI 12 NGUỒN TÌNH BÁO ĐỘC LẬP (4 TẦNG KIỂM CHỨNG)</strong>
+          <span class="logo-badge" style="background:#2563eb; font-size:9px;">100% ĐÃ XÁC THỰC</span>
+        </div>
+        <div style="font-size:11px; color:var(--text-muted); margin-bottom:8px;">
+          Dữ liệu được kiểm tra chéo tự động qua 4 tầng cơ quan nhà nước, hiệp hội ngành hàng, trạm cân thực địa và sổ cái liên minh lò sấy:
+        </div>
+        <div id="hotspot-12-sources-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:6px; font-size:10px;"></div>
+      </div>
+      <!-- BÀI BÁO CÁO 1: CHUYÊN GIA ĐẦU NGÀNH VIỆT NAM -->
+      <div class="card" style="border-left:4px solid var(--green); background:linear-gradient(145deg, #131b2e, #18283f); margin-bottom:16px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+          <span class="logo-badge" style="background:var(--green); font-size:10px;">🇻🇳 BÁO CÁO CHIẾN LƯỢC VIỆT NAM</span>
+          <span style="font-size:10px; color:var(--text-muted);" id="hotspot-vn-time">Live ICT</span>
+        </div>
+        <h3 style="color:#fff; font-size:14px; margin-bottom:8px; line-height:1.4;" id="hotspot-vn-title">
+          BÁO CÁO CHIẾN LƯỢC TÁC CHIẾN LÒ SẤY 24H
+        </h3>
+        <p style="font-size:12px; color:#e2e8f0; line-height:1.6; margin-bottom:12px; background:rgba(0,0,0,0.3); padding:10px; border-radius:8px;" id="hotspot-vn-summary">
+          Đang tải báo cáo chuyên sâu từ các chuyên gia Việt Nam...
+        </p>
+
+        <!-- Bảng 4 Chỉ Số Kinh Tế -->
+        <div style="font-size:11px; font-weight:700; color:var(--blue); margin-bottom:6px;">📊 BẢN ĐỒ CHỈ SỐ KINH TẾ ĐẦU VỤ:</div>
+        <div id="hotspot-vn-indicators" style="display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-bottom:12px;"></div>
+
+        <!-- Dự Báo 3 - 10 Ngày Tới -->
+        <div style="background:rgba(16,185,129,0.1); border:1px solid var(--green); padding:10px; border-radius:8px; font-size:11px; line-height:1.6;">
+          <div style="font-size:12px; font-weight:800; color:var(--green); margin-bottom:4px;" id="hotspot-vn-forecast-header">
+            🎯 DỰ BÁO XU HƯỚNG 3 – 10 NGÀY TỚI:
+          </div>
+          <div id="hotspot-vn-forecast-body"></div>
+        </div>
+      </div>
+
+      <!-- BÀI BÁO CÁO 2: CHUYÊN GIA & HỘI THƯƠNG GIA TRUNG QUỐC (ĐẶT NGAY BÊN DƯỚI) -->
+      <div class="card" style="border-left:4px solid var(--orange); background:linear-gradient(145deg, #1f1917, #2d1f1a); margin-bottom:16px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+          <span class="logo-badge" style="background:var(--orange); font-size:10px;">🇨🇳 BÁO CÁO MẬT: ĐẠI XƯỞNG HỒ NAM & THAO TÚNG GIÁ</span>
+          <span style="font-size:10px; color:var(--text-muted);" id="hotspot-cn-time">Live ICT</span>
+        </div>
+        <h3 style="color:#fff; font-size:14px; margin-bottom:8px; line-height:1.4;" id="hotspot-cn-title">
+          BÁO CÁO MẬT NỘI BỘ: TOAN TÍNH ĐẠI XƯỞNG HỒ NAM & THẾ LỰC THAO TÚNG GIÁ
+        </h3>
+        <p style="font-size:12px; color:#fde68a; line-height:1.6; margin-bottom:12px; background:rgba(0,0,0,0.35); padding:10px; border-radius:8px;" id="hotspot-cn-summary">
+          Đang bóc tách toan tính từ 300 nhà máy kẹo Tương Đàm & Ích Dương...
+        </p>
+
+        <!-- Thông Tin Nội Bộ Đại Xưởng -->
+        <div style="font-size:11px; font-weight:700; color:var(--orange); margin-bottom:6px;">🏭 DỮ LIỆU NỘI BỘ ĐẠI XƯỞNG & KHO LẠNH:</div>
+        <div id="hotspot-cn-insights" style="background:rgba(0,0,0,0.3); padding:10px; border-radius:8px; font-size:11px; line-height:1.6; margin-bottom:12px;"></div>
+
+        <!-- Vạch Trần 3 Chiêu Thao Túng -->
+        <div style="background:rgba(239,68,68,0.1); border-left:3px solid var(--red); padding:10px; border-radius:6px; font-size:11px; line-height:1.6; margin-bottom:12px;">
+          <div style="font-weight:700; color:#fca5a5; margin-bottom:4px;">⚠️ VẠCH TRẦN 3 CHIÊU TRÒ THAO TÚNG CỦA HỘI ĐẦU NẬU:</div>
+          <div id="hotspot-cn-tactics" style="color:#e2e8f0;"></div>
+        </div>
+
+        <!-- Dự Báo Thị Trường Trung Quốc 3 - 10 Ngày Tới -->
+        <div style="background:rgba(245,158,11,0.1); border:1px solid var(--yellow); padding:10px; border-radius:8px; font-size:11px; line-height:1.6;">
+          <div style="font-size:12px; font-weight:800; color:var(--yellow); margin-bottom:4px;">
+            🔮 DỰ BÁO THỊ TRƯỜNG TRUNG QUỐC 3 – 10 NGÀY TỚI:
+          </div>
+          <div id="hotspot-cn-verdict"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 3: TÌNH BÁO 24H (TIMELINE & ĐĂNG TIN THỰC ĐỊA) -->
+    
+    <!-- TAB 3: CÔNG CỤ ĐỐI SOÁT CHỈ SỐ GIÁ TÂN HOA 3 NĂM ĐỘC LẬP (2024 - 2025 - 2026) -->
+    <div id="tab-xinhua" class="tab-content">
+      <div class="card" style="border:1px solid var(--blue); background:linear-gradient(145deg, #131b2e, #1e293b);">
+        <div class="region-header">
+          <span class="region-name" style="color:var(--blue);">🏛️ ĐỐI SOÁT CHỈ SỐ GIÁ TÂN HOA (新华·海南槟榔价格指数)</span>
+          <span class="logo-badge" style="background:#2563eb; font-size:10px;">3 BIỂU ĐỒ ĐỘC LẬP</span>
+        </div>
+        <div style="font-size:11px; color:var(--text-muted); margin-bottom:12px;">
+          Nguồn chính thống: <a href="https://indices.cnfin.com/5053/index.html" target="_blank" style="color:var(--blue); text-decoration:underline;">Tập đoàn Thông tin Kinh tế Tân Hoa Xã & Sở Nông Nghiệp Hải Nam (cnfin.com)</a> | Mốc cơ sở: 01/09/2017 = 100 điểm
+        </div>
+
+        <!-- 3 Thẻ Tóm Tắt 3 Năm -->
+        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-bottom:12px;">
+          <div style="background:rgba(250,204,21,0.12); border:1px solid #facc15; padding:8px; border-radius:8px; text-align:center;">
+            <div style="font-size:10px; color:#facc15; font-weight:700;">NĂM 2024 (SỐT ĐỈNH)</div>
+            <div style="font-size:15px; font-weight:800; color:#facc15; margin:2px 0;">525.0 Điểm</div>
+            <div style="font-size:9px; color:var(--text-muted);">Cau khô VN: 450k-500k</div>
+          </div>
+          <div style="background:rgba(239,68,68,0.12); border:1px solid #ef4444; padding:8px; border-radius:8px; text-align:center;">
+            <div style="font-size:10px; color:#ef4444; font-weight:700;">NĂM 2025 (SẬP ĐÁY)</div>
+            <div style="font-size:15px; font-weight:800; color:#ef4444; margin:2px 0;">120.9 Điểm</div>
+            <div style="font-size:9px; color:var(--text-muted);">Cau khô VN: 80k-100k</div>
+          </div>
+          <div style="background:rgba(16,185,129,0.15); border:1px solid #10b981; padding:8px; border-radius:8px; text-align:center;">
+            <div style="font-size:10px; color:#10b981; font-weight:700;">NĂM 2026 (HÔM NAY)</div>
+            <div style="font-size:15px; font-weight:800; color:#10b981; margin:2px 0;">295.4 Điểm</div>
+            <div style="font-size:9px; color:var(--text-muted);">Tăng +144% (Khô 192k)</div>
+          </div>
+        </div>
+
+        <!-- 3 Nút Chọn Xem 3 Năm Độc Lập -->
+        <div style="display:flex; gap:8px; margin-bottom:12px; overflow-x:auto;">
+          <button type="button" id="btn-xh-2026" class="tab-btn active" style="font-weight:700; padding:6px 12px;" onclick="switchXinhuaYear(2026)">🟢 Năm Nay 2026 (Live Ngày & Tháng)</button>
+          <button type="button" id="btn-xh-2025" class="tab-btn" style="font-weight:700; padding:6px 12px;" onclick="switchXinhuaYear(2025)">🔴 Năm Ngoái 2025 (12 Tháng Sập Đáy)</button>
+          <button type="button" id="btn-xh-2024" class="tab-btn" style="font-weight:700; padding:6px 12px;" onclick="switchXinhuaYear(2024)">🟡 Năm 2024 (12 Tháng Sốt Đỉnh)</button>
+        </div>
+
+        <!-- VIEW 1: NĂM 2026 (HIỆN TẠI - LIVE THEO NGÀY & THÁNG) -->
+        <div id="wrap-xh-2026" style="display:block;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+            <strong style="color:var(--green); font-size:13px;">📈 NĂM 2026: ĐIỂM SỐ HÔM NAY 295.40 (+144% TỪ ĐÁY)</strong>
+            <div style="display:flex; gap:6px;">
+              <button type="button" id="btn-xh-mode-daily" class="tab-btn active" style="font-size:10px; padding:3px 8px;" onclick="switchXinhua2026Mode('daily')">⏱️ Từng Ngày (T8/2026)</button>
+              <button type="button" id="btn-xh-mode-monthly" class="tab-btn" style="font-size:10px; padding:3px 8px;" onclick="switchXinhua2026Mode('monthly')">📅 12 Tháng 2026</button>
+            </div>
+          </div>
+          <canvas id="canvas-xinhua-2026" width="600" height="240" style="width:100%; height:220px; background:rgba(0,0,0,0.4); border-radius:8px; margin-bottom:10px;"></canvas>
+          <div id="wrap-xh-2026-detail" style="background:rgba(0,0,0,0.25); padding:10px; border-radius:8px; font-size:11px; line-height:1.6;"></div>
+        </div>
+
+        <!-- VIEW 2: NĂM 2025 (12 THÁNG SẬP GIÁ) -->
+        <div id="wrap-xh-2025" style="display:none;">
+          <div style="color:#ef4444; font-size:13px; font-weight:700; margin-bottom:8px;">
+            📉 NĂM 2025: BIỂU ĐỒ 12 THÁNG SẬP ĐỔ ĐÈO (RƠI TỪ 225 VỀ ĐÁY 110.5 ĐIỂM)
+          </div>
+          <canvas id="canvas-xinhua-2025" width="600" height="240" style="width:100%; height:220px; background:rgba(0,0,0,0.4); border-radius:8px; margin-bottom:10px;"></canvas>
+          <div id="wrap-xh-2025-detail" style="background:rgba(0,0,0,0.25); padding:10px; border-radius:8px; font-size:11px; line-height:1.6;"></div>
+        </div>
+
+        <!-- VIEW 3: NĂM 2024 (12 THÁNG SỐT GIÁ KỶ LỤC) -->
+        <div id="wrap-xh-2024" style="display:none;">
+          <div style="color:#facc15; font-size:13px; font-weight:700; margin-bottom:8px;">
+            🔥 NĂM 2024: BIỂU ĐỒ 12 THÁNG SỐT GIÁ KỶ LỤC LỊCH SỬ (ĐẠT ĐỈNH 525.0 ĐIỂM)
+          </div>
+          <canvas id="canvas-xinhua-2024" width="600" height="240" style="width:100%; height:220px; background:rgba(0,0,0,0.4); border-radius:8px; margin-bottom:10px;"></canvas>
+          <div id="wrap-xh-2024-detail" style="background:rgba(0,0,0,0.25); padding:10px; border-radius:8px; font-size:11px; line-height:1.6;"></div>
+        </div>
+
+        <!-- BẢN BÁO CÁO PHÂN TÍCH CHUYÊN SÂU CHỈ SỐ TÂN HOA & DỰ BÁO 7 NGÀY TỚI -->
+        <div id="wrap-xh-daily-report" style="margin-top:14px; border-top:1px solid rgba(255,255,255,0.1); padding-top:12px;"></div>
+      </div>
+    </div>
+
+    <div id="tab-intel" class="tab-content">
+      <div style="font-size:13px; font-weight:700; color:var(--text-muted); margin:4px 0 8px 4px;">
+        ⏱️ DÒNG CHẢY SỰ KIỆN TÌNH BÁO 24H (TỰ ĐỘNG & THỰC ĐỊA)
+      </div>
+      <div id="timeline-container"></div>
+    </div>
+
+    <!-- TAB 4: BIỂU ĐỒ 7 NGÀY LỊCH SỬ & QUỸ ĐẠO DỰ BÁO 3D-7D -->
+    <div id="tab-charts" class="tab-content">
+      <div class="card">
+        <div class="region-header">
+          <span class="region-name">🇻🇳 BIỂU ĐỒ CAU KHÔ VIỆT NAM (ĐẮK LẮK & CỬA KHẨU)</span>
+          <span class="logo-badge" style="background:#2563eb; font-size:10px;">7D QUA + DỰ BÁO 7D</span>
+        </div>
+        <div style="font-size:11px; color:var(--text-muted); margin-bottom:8px;">
+          📅 <span id="vn-chart-time">Cập nhật thời gian thực</span> | Đơn vị: <strong>VND/kg khô (P50)</strong>
+        </div>
+        <canvas id="canvas-vn-chart" width="600" height="220" style="width:100%; height:200px; background:rgba(0,0,0,0.3); border-radius:8px; margin-bottom:8px;"></canvas>
+
+        <div style="background:rgba(0,0,0,0.3); padding:12px; border-radius:8px; font-size:11px; line-height:1.7;">
+          <div style="font-size:12px; font-weight:800; color:var(--green); margin-bottom:6px;">
+            🎯 BẢN GIẢI TRÌNH CĂN CỨ KHOA HỌC & ĐỘNG LỰC DỰ BÁO 3D/7D:
+          </div>
+          <div style="margin-bottom:6px;">
+            <strong style="color:var(--blue);">1. Khí tượng Hải Nam:</strong> Mưa 110mm tại Vạn Ninh (WSSI 58/100) theo <a href="http://www.weather.com.cn/alarm/newalarmcontent.shtml?file=101310215-20260822084023-0501.html" target="_blank" style="color:var(--blue); text-decoration:underline;">Cục Khí tượng NMC</a> làm giảm 30% sản lượng hái quả, giá tươi neo 35.5 CNY/jin.
+          </div>
+          <div style="margin-bottom:6px;">
+            <strong style="color:var(--yellow);">2. Đại xưởng Hồ Nam:</strong> 300 xưởng chạy 85% công suất theo <a href="https://life.china.com/2026-08/19/content_619378.html" target="_blank" style="color:var(--yellow); text-decoration:underline;">Báo Cáo China.com</a>, áp lực vét hàng kẹo Tết bắt buộc phải gom cau khô VN.
+          </div>
+          <div style="margin-bottom:6px;">
+            <strong style="color:var(--green);">3. Tỷ giá Vietcombank:</strong> CNY/VND bán ra 3.948,53 đ tại <a href="https://www.vietcombank.com.vn/vi-VN/KHCN/Cong-cu-Tien-ich/Ty-gia" target="_blank" style="color:var(--green); text-decoration:underline;">Vietcombank XML</a> giúp giá quy đổi đạt 280k đ/kg tươi.
+          </div>
+          <div style="margin-bottom:6px;">
+            <strong style="color:#a78bfa;">4. Thông quan Cửa khẩu:</strong> Tân Thanh & Móng Cái thông quan 28 xe/ngày theo <a href="https://tuoitre.vn/425-tan-cau-kho-xuat-lau-sang-trung-quoc-theo-duong-day-bao-bien-20260610162618527.htm" target="_blank" style="color:#a78bfa; text-decoration:underline;">Chi Cục Hải Quan</a>.
+          </div>
+          <div style="color:#f87171; border-top:1px dashed rgba(255,255,255,0.1); padding-top:6px; margin-top:6px;">
+            ⚠️ <strong>Điều kiện làm sai dự báo:</strong> Nếu Hải Nam tạnh ráo hoàn toàn trong 48h tới và các đầu nậu dừng cọc > 3 ngày.
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="region-header">
+          <span class="region-name">🇨🇳 BIỂU ĐỒ CAU TƯƠI VẠN NINH (HẢI NAM, TRUNG QUỐC)</span>
+          <span class="logo-badge" style="background:var(--orange); font-size:10px;">CNY/JIN & QUY ĐỔI VND</span>
+        </div>
+        <div style="font-size:11px; color:var(--text-muted); margin-bottom:8px;">
+          📅 <span id="cn-chart-time">Cập nhật thời gian thực</span> | Đơn vị: <strong>CNY/jin (500g) & VND/kg quy đổi</strong>
+        </div>
+        <canvas id="canvas-cn-chart" width="600" height="220" style="width:100%; height:200px; background:rgba(0,0,0,0.3); border-radius:8px; margin-bottom:8px;"></canvas>
+      </div>
+
+    </div>
+
+    <!-- TAB 5: BỘ PHẢN ĐÒN THƯƠNG LÁI & CHIẾN LƯỢC 4 NHỊP MÙA VỤ -->
+    <div id="tab-tactics" class="tab-content">
+      <div class="card">
+        <!-- RADAR KIỂM SOÁT ĐỘ ẨM & NẤM MỐC CONTAINER -->
+        <div class="card" style="border-left:4px solid var(--green); background:linear-gradient(145deg, #131b2e, #1a2942); margin-bottom:14px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+            <strong style="color:var(--green); font-size:13px;">🛡️ KIỂM SOÁT ĐỘ ẨM & CẢNH BÁO MỐC CONTAINER (GACC)</strong>
+            <span class="logo-badge" style="background:#2563eb; font-size:9px;">XUẤT KHẨU CHÍNH NGẠCH</span>
+          </div>
+          <div style="font-size:11px; color:var(--text-muted); margin-bottom:8px;">
+            Nhập độ ẩm đo thực tế tại tâm lõi hạt cau sấy để kiểm tra rủi ro mồ hôi container:
+          </div>
+
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:8px;">
+            <div>
+              <label class="input-label">Độ Ẩm Lõi Hạt (%):</label>
+              <input type="number" id="moisture-input" class="input-field" value="10.5" step="0.1" oninput="runMoistureCheck()">
+            </div>
+            <div>
+              <label class="input-label">Thời Gian Sấy Lò (giờ):</label>
+              <input type="number" id="drying-hours-input" class="input-field" value="48" oninput="runMoistureCheck()">
+            </div>
+          </div>
+
+          <div id="moisture-guard-result"></div>
+        </div>
+
+        <div style="font-size:14px; font-weight:700; color:var(--blue); margin-bottom:4px;">2. HỘ CHIẾU CHẤT LƯỢNG & ĐỊNH GIÁ BÓC TÁCH</div>
+        <label class="input-label">Tổng Khối Lượng Lô Hàng (kg):</label>
+        <input type="number" id="lot-weight" class="input-field" value="10000" oninput="runPassportCalc()">
+
+        <div class="slider-wrap">
+          <div class="slider-header"><span>Cau Dài Loại 1 (200k/kg):</span><strong id="label-long">60%</strong></div>
+          <input type="range" id="slider-long" class="range-slider" min="0" max="100" value="60" oninput="updateSliders('long')">
+        </div>
+        <div class="slider-wrap">
+          <div class="slider-header"><span>Cau Tròn Loại 2 (175k/kg):</span><strong id="label-round">30%</strong></div>
+          <input type="range" id="slider-round" class="range-slider" min="0" max="100" value="30" oninput="updateSliders('round')">
+        </div>
+        <div class="slider-wrap">
+          <div class="slider-header"><span>Cau Dạt Loại 3 (90k/kg):</span><strong id="label-broken">10%</strong></div>
+          <input type="range" id="slider-broken" class="range-slider" min="0" max="100" value="10" readonly>
+        </div>
+
+        <label class="input-label">Giá Thương Lái Đang Ép Cào Bằng (đ/kg):</label>
+        <input type="number" id="trader-offer" class="input-field" value="165000" oninput="runPassportCalc()">
+
+        <button class="btn-primary" style="background:#2563eb;" onclick="runPassportCalc()">XUẤT HỘ CHIẾU ĐỐI CHẤT</button>
+        <div id="passport-output"></div>
+      </div>
+
+      <div class="card" style="border-left:4px solid var(--yellow); background:linear-gradient(145deg, #131b2e, #1c2742);">
+        <div style="font-size:14px; font-weight:800; color:var(--yellow); margin-bottom:8px;">📅 CHIẾN LƯỢC TÁC CHIẾN 4 NHỊP THEO CHU KỲ LỊCH ÂM</div>
+        <div style="font-size:12px; line-height:1.7; color:#fff;">
+          <div style="background:rgba(0,0,0,0.3); padding:10px; border-radius:8px; margin-bottom:8px;">
+            <strong style="color:var(--green);">1. THÁNG 7 – 8 ÂL (ĐẦU VỤ — BẢO TOÀN 100% VỐN GỐC):</strong><br>
+            • Tỷ lệ sấy non $R = 5.0 - 5.5$. Khóa giá mua tươi an toàn $P_{\text{ceiling}} \le 33.500\text{ đ/kg}$.<br>
+            • Sấy mẻ nào bán ngay <strong>30% sản lượng</strong> thu tiền tươi để trả sạch tiền than, bao bì và lương thợ.
+          </div>
+          <div style="background:rgba(0,0,0,0.3); padding:10px; border-radius:8px; margin-bottom:8px;">
+            <strong style="color:var(--blue);">2. THÁNG 9 ÂL (CHÍNH VỤ — ĐÓN SÓNG BÃO HẢI NAM):</strong><br>
+            • Tỷ lệ sấy chuẩn $R = 4.3 - 4.6$. Theo dõi chỉ số WSSI. Khi bão giá tăng $\implies$ Xuất bán tiếp <strong>30% ở đỉnh sóng</strong>. Sấy độ ẩm $\le 11.5\%$.
+          </div>
+          <div style="background:rgba(0,0,0,0.3); padding:10px; border-radius:8px; margin-bottom:8px;">
+            <strong style="color:var(--orange);">3. THÁNG 10 – 11 ÂL (CAO ĐIỂM KẸO TẾT — GẶT ĐỈNH LỢI NHUẬN):</strong><br>
+            • Tỷ lệ sấy già $R = 3.9 - 4.2$. Đại xưởng Hồ Nam chạy $90-95\%$ công suất. Xuất bán <strong>30% cau dài loại 1 đẹp nhất</strong> ở mức giá trần.
+          </div>
+          <div style="background:rgba(0,0,0,0.3); padding:10px; border-radius:8px;">
+            <strong style="color:var(--red);">4. THÁNG 12 ÂL (CUỐI VỤ — DỌN SẠCH KHO & TẤT TOÁN):</strong><br>
+            • Bán thanh lý <strong>10% cau tròn/dạt còn lại</strong>, tất toán toàn bộ nợ, tắt lò bảo dưỡng buồng sấy.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 6: MÁY TÍNH LỢI NHUẬN & HÒA VỐN TÙY CHỈNH (NẰM TRƯỚC TAB QUẢN TRỊ HỘI VIÊN) -->
+    <div id="tab-calculator" class="tab-content">
+      <div class="card" style="border:1px solid var(--green); background:linear-gradient(145deg, #131b2e, #1a2642);">
+        <div style="font-size:15px; font-weight:800; color:var(--green); margin-bottom:4px;">
+          🧮 MÁY TÍNH LỢI NHUẬN & ĐIỂM HÒA VỐN MẺ SẤY
+        </div>
+        <div style="font-size:11px; color:var(--text-muted); margin-bottom:12px;">
+          Nhập giá mua tươi, giá bán khô và tỷ lệ sấy thực tế của mẻ (4:1, 4.5:1, 5:1, 6:1...) để AI tính chính xác lãi/lỗ:
+        </div>
+
+        <!-- Chọn Loại Nguyên Liệu & Thời Điểm Mùa Vụ -->
+        <div style="background:rgba(0,0,0,0.3); padding:10px; border-radius:8px; margin-bottom:10px; border:1px solid var(--border);">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+            <label class="input-label" style="margin:0;">Loại Cau Tươi Đầu Vào:</label>
+            <div style="display:flex; gap:10px;">
+              <label style="font-size:12px; color:#fff; cursor:pointer;">
+                <input type="radio" name="calc-raw-type" id="raw-type-bunch" value="BUNCH" checked onchange="toggleRawTypeUI()"> 🌿 <strong>Cau Cành</strong>
+              </label>
+              <label style="font-size:12px; color:#fff; cursor:pointer;">
+                <input type="radio" name="calc-raw-type" id="raw-type-fruit" value="FRUIT" onchange="toggleRawTypeUI()"> 🍈 <strong>Cau Trái</strong>
+              </label>
+            </div>
+          </div>
+
+          <!-- Nút Chọn Nhanh Thời Điểm Cây Cau (Đầu vụ / Giữa vụ / Cuối vụ) -->
+          <div id="wrap-season-stage" style="margin-top:6px;">
+            <div style="font-size:10px; color:var(--text-muted); margin-bottom:4px;">Chọn nhanh thời điểm sinh lý cây cau:</div>
+            <div style="display:flex; gap:6px; overflow-x:auto;">
+              <button type="button" class="tab-btn active" style="padding:4px 8px; font-size:10px;" onclick="setSeasonPreset(20, 5.4)">🌱 Đầu vụ (T7-8 ÂL: Hao 18-22%, chuẩn 20% | R=5.4)</button>
+              <button type="button" class="tab-btn" style="padding:4px 8px; font-size:10px;" onclick="setSeasonPreset(14.5, 4.5)">🎋 Chính vụ (T9-10 ÂL: Hao 13-16%, chuẩn 14.5% | R=4.5)</button>
+              <button type="button" class="tab-btn" style="padding:4px 8px; font-size:10px;" onclick="setSeasonPreset(10.5, 3.9)">🍂 Cuối vụ (T11-12 ÂL: Hao 9-12%, chuẩn 10.5% | R=3.9)</button>
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:6px;">
+              <div>
+                <label class="input-label" style="font-size:10px;">% Trừ Hao Cọng Cuống (18-22% Đầu Vụ):</label>
+                <input type="number" id="calc-stem-tare" class="input-field" value="20" step="0.5" oninput="runCustomProfitCalc()" style="padding:4px 8px; font-size:12px;">
+              </div>
+              <div>
+                <label class="input-label" style="font-size:10px;">Công Thợ Vặt Cuống (đ/kg tươi):</label>
+                <input type="number" id="calc-labor-cost" class="input-field" value="500" oninput="runCustomProfitCalc()" style="padding:4px 8px; font-size:12px;">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:8px;">
+          <div>
+            <label class="input-label">Giá Cau Tươi Mua Vào (đ/kg):</label>
+            <input type="number" id="calc-fresh-price" class="input-field" value="20000" oninput="runCustomProfitCalc()">
+          </div>
+          <div>
+            <label class="input-label">Giá Cau Khô Bán Ra (đ/kg):</label>
+            <input type="number" id="calc-dry-price" class="input-field" value="192500" oninput="runCustomProfitCalc()">
+          </div>
+        </div>
+
+        <label class="input-label">Tỷ Lệ Sấy Thực Tế (Số kg tươi = 1 kg khô):</label>
+        <div style="display:flex; gap:6px; margin-bottom:6px; overflow-x:auto;">
+          <button type="button" class="tab-btn" style="padding:4px 8px; font-size:11px;" onclick="setRatioPreset(4.5)">4.5 : 1 (Chuẩn)</button>
+          <button type="button" class="tab-btn" style="padding:4px 8px; font-size:11px;" onclick="setRatioPreset(5.4)">5.4 : 1 (Đầu vụ)</button>
+          <button type="button" class="tab-btn active" style="padding:4px 8px; font-size:11px;" onclick="setRatioPreset(6.0)">6.0 : 1 (Sấy Kiệt Ganguo)</button>
+          <button type="button" class="tab-btn" style="padding:4px 8px; font-size:11px;" onclick="setRatioPreset(6.5)">6.5 : 1</button>
+          <button type="button" class="tab-btn" style="padding:4px 8px; font-size:11px;" onclick="setRatioPreset(7.0)">7.0 : 1 (Non Cực Đoan)</button>
+        </div>
+        <input type="number" id="calc-ratio" class="input-field" value="6.0" step="0.1" oninput="runCustomProfitCalc()">
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:10px;">
+          <div>
+            <label class="input-label">Khối Lượng Tươi Mẻ Sấy (kg):</label>
+            <input type="number" id="calc-batch-weight" class="input-field" value="10000" oninput="runCustomProfitCalc()">
+          </div>
+          <div>
+            <label class="input-label">Tiền Than/Điện (đ/kg khô):</label>
+            <input type="number" id="calc-fuel-cost" class="input-field" value="12000" oninput="runCustomProfitCalc()">
+          </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:12px;">
+          <div>
+            <label class="input-label">Công Lặt Cuống (đ/kg tươi):</label>
+            <input type="number" id="calc-labor-cost" class="input-field" value="500" oninput="runCustomProfitCalc()">
+          </div>
+          <div>
+            <label class="input-label">Hao Hụt Phế Phẩm (%):</label>
+            <input type="number" id="calc-waste-rate" class="input-field" value="4" oninput="runCustomProfitCalc()">
+          </div>
+        </div>
+
+        <button class="btn-primary" onclick="runCustomProfitCalc()">TÍNH TOÁN LỢI NHUẬN MẺ SẤY</button>
+        <div id="calculator-result-box" style="margin-top:12px;"></div>
+      </div>
+    </div>
+
+    <!-- TAB 7: QUẢN TRỊ HỘI VIÊN & ĐĂNG TIN NÓNG 24H (DÀNH CHO ADMIN) -->
+    <div id="tab-admin-users" class="tab-content">
+      <!-- CỔNG ĐĂNG BẢN TIN NÓNG THỰC ĐỊA 24H -->
+      <div class="card" style="border:1px solid var(--green); background:linear-gradient(145deg, #131b2e, #1a2942);">
+        <div style="font-size:14px; font-weight:800; color:var(--green); margin-bottom:4px;">
+          🔥 CỔNG ĐĂNG BẢN TIN NÓNG THỰC ĐỊA 24H
+        </div>
+        <div style="font-size:11px; color:var(--text-muted); margin-bottom:10px;">
+          Admin có thể phát đi thông báo khẩn từ cửa khẩu hoặc vùng thu mua để toàn bộ hội viên cập nhật tức thời:
+        </div>
+
+        <div id="admin-news-msg" style="display:none; padding:8px; font-size:12px; border-radius:6px; margin-bottom:10px;"></div>
+
+        <label class="input-label">Tiêu Đề Bản Tin Nóng:</label>
+        <input type="text" id="news-title" class="input-field" placeholder="VD: Cửa khẩu Tân Thanh hôm nay thông quan 32 xe, giá chào mua tăng 3k">
+
+        <label class="input-label">Nội Dung Chi Tiết:</label>
+        <textarea id="news-content" class="input-field" rows="3" style="resize:vertical;" placeholder="Nhập diễn biến thực tế tại cửa khẩu hoặc trạm cân..."></textarea>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+          <div>
+            <label class="input-label">Nhãn / Nguồn Tin:</label>
+            <input type="text" id="news-tag" class="input-field" value="TRINH SÁT CỬA KHẨU / LÒ SẤY">
+          </div>
+          <div>
+            <label class="input-label">Mức Độ Tác Động:</label>
+            <select id="news-impact" class="input-field">
+              <option value="POSITIVE">🟢 Tích Cực (Ủng hộ tăng giá)</option>
+              <option value="VERY_POSITIVE">🚀 Rất Tích Cực (Sốt hàng)</option>
+              <option value="WARNING">⚠️ Cảnh Báo (Cần đề phòng)</option>
+              <option value="DANGER">🔴 Nguy Hiểm (Bẫy dìm giá)</option>
+            </select>
+          </div>
+        </div>
+
+        <label class="input-label">Chỉ Thị Hành Động Cho Chủ Lò:</label>
+        <input type="text" id="news-action" class="input-field" value="Chủ lò giữ chặt hàng đẹp, không bán cắt lỗ.">
+
+        <button class="btn-primary" onclick="adminPostBreakingNews()">ĐĂNG BẢN TIN LÊN TÌNH BÁO 24H NGAY</button>
+      </div>
+
+      <!-- Thống Kê Tổng Quan 4 Chỉ Số -->
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:12px;">
+        <div class="card" style="padding:10px; margin:0; text-align:center;">
+          <div style="font-size:11px; color:var(--text-muted);">TỔNG HỘI VIÊN</div>
+          <div style="font-size:22px; font-weight:800; color:#fff;" id="stat-total-users">0</div>
+          <div style="font-size:10px; color:var(--green);"><strong id="stat-active-users">0</strong> ĐANG DÙNG</div>
+        </div>
+        <div class="card" style="padding:10px; margin:0; text-align:center;">
+          <div style="font-size:11px; color:var(--text-muted);">SẮP HẾT HẠN (≤3D)</div>
+          <div style="font-size:22px; font-weight:800; color:var(--yellow);" id="stat-expiring-soon">0</div>
+          <div style="font-size:10px; color:var(--red);"><strong id="stat-expired">0</strong> ĐÃ HẾT HẠN</div>
+        </div>
+      </div>
+
+      <div class="card" style="padding:10px; margin-bottom:12px; display:flex; justify-content:space-between; align-items:center; background:rgba(16,185,129,0.1); border:1px solid var(--green);">
+        <span style="font-size:12px; font-weight:700;">💰 TỔNG DOANH THU THU PHÍ:</span>
+        <strong style="font-size:16px; color:var(--green);" id="stat-total-revenue">0 VND</strong>
+      </div>
+
+      <!-- FORM TẠO HỘI VIÊN SIÊU TINH GỌN -->
+      <div class="card" style="border:1px solid var(--blue);">
+        <div style="font-size:14px; font-weight:700; color:var(--blue); margin-bottom:4px;">➕ TẠO HỘI VIÊN & BÁN GÓI CƯỚC</div>
+        <div id="admin-user-msg" style="display:none; padding:8px; font-size:12px; border-radius:6px; margin-bottom:10px;"></div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+          <div>
+            <label class="input-label">Tên Đăng Nhập (Username):</label>
+            <input type="text" id="new-user-username" class="input-field" placeholder="VD: thocan1, lo_daklak" autocapitalize="none" autocorrect="off">
+          </div>
+          <div>
+            <label class="input-label">Mật Khẩu Ban Đầu:</label>
+            <input type="password" id="new-user-password" class="input-field" placeholder="VD: 123456" autocapitalize="none" autocorrect="off">
+          </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+          <div>
+            <label class="input-label">Chọn Gói Cước Thời Hạn:</label>
+            <select id="new-user-plan" class="input-field" onchange="toggleCustomDaysInput()">
+              <option value="1_MONTH">Gói 1 Tháng (30 ngày)</option>
+              <option value="3_MONTHS">Gói 3 Tháng (90 ngày)</option>
+              <option value="6_MONTHS">Gói 6 Tháng (180 ngày)</option>
+              <option value="12_MONTHS">Gói 1 Năm (365 ngày)</option>
+              <option value="CUSTOM">Gói Tùy Chỉnh (Nhập ngày)</option>
+            </select>
+          </div>
+          <div>
+            <label class="input-label">Số Tiền Thu (VND):</label>
+            <input type="number" id="new-user-price" class="input-field" value="500000">
+          </div>
+        </div>
+
+        <div id="wrap-custom-days" style="display:none; margin-bottom:8px;">
+          <label class="input-label">Số Ngày Cấp Quyền:</label>
+          <input type="number" id="new-user-custom-days" class="input-field" value="45">
+        </div>
+
+        <button class="btn-primary" onclick="adminCreateUserWithPlan()">TẠO & KÍCH HOẠT HỘI VIÊN NGAY</button>
+      </div>
+
+      <!-- DANH SÁCH HỘI VIÊN & TÌM KIẾM NHANH -->
+      <div class="card">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+          <span style="font-size:13px; font-weight:700; color:#fff;">📋 DANH SÁCH HỘI VIÊN:</span>
+          <button onclick="loadAdminDashboard()" style="background:transparent; border:1px solid var(--border); color:var(--blue); font-size:11px; padding:3px 8px; border-radius:6px; cursor:pointer;">
+            🔄 Làm Mới
+          </button>
+        </div>
+
+        <input type="text" id="user-search-box" class="input-field" placeholder="🔍 Gõ username để tìm nhanh..." oninput="filterUsersList()" style="margin-bottom:10px; border-color:var(--blue);">
+
+        <div id="admin-users-list-container">Đang tải danh sách...</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- MODAL GIA HẠN -->
+  <div id="renew-modal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.75); z-index:99; justify-content:center; align-items:center; padding:20px;">
+    <div class="card" style="width:100%; max-width:400px; padding:20px; border:1px solid var(--green);">
+      <h3 style="color:var(--green); margin-bottom:10px;" id="renew-modal-title">GIA HẠN GÓI CƯỚC</h3>
+      <input type="hidden" id="renew-target-user-id">
+
+      <label class="input-label">Chọn Gói Gia Hạn:</label>
+      <select id="renew-plan-type" class="input-field">
+        <option value="1_MONTH">+1 Tháng (30 ngày)</option>
+        <option value="3_MONTHS">+3 Tháng (90 ngày)</option>
+        <option value="6_MONTHS">+6 Tháng (180 ngày)</option>
+        <option value="12_MONTHS">+1 Năm (365 ngày)</option>
+      </select>
+
+      <label class="input-label">Số Tiền Thu Thêm (VND):</label>
+      <input type="number" id="renew-amount-paid" class="input-field" value="500000">
+
+      <div style="display:flex; gap:8px; margin-top:10px;">
+        <button class="btn-primary" onclick="confirmRenewSubscription()">XÁC NHẬN GIA HẠN</button>
+        <button class="btn-primary" style="background:#475569;" onclick="closeRenewModal()">ĐÓNG</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/app/js/app.js"></script>
+</body>
+</html>

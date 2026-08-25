@@ -1,0 +1,72 @@
+:root {
+  --bg: #090d16;
+  --card: #131b2e;
+  --card-hover: #1c2742;
+  --border: #222f4c;
+  --text: #f1f5f9;
+  --text-muted: #94a3b8;
+  --green: #10b981;
+  --green-glow: rgba(16, 185, 129, 0.15);
+  --orange: #f97316;
+  --red: #ef4444;
+  --blue: #38bdf8;
+  --yellow: #f59e0b;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+body { background: var(--bg); color: var(--text); padding-bottom: 70px; }
+.container { max-width: 650px; margin: 0 auto; padding: 14px; }
+
+/* Header & Ticker */
+header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 10px; border-bottom: 1px solid var(--border); margin-bottom: 12px; }
+.logo-badge { background: linear-gradient(135deg, var(--green), #059669); color: white; font-weight: 800; font-size: 13px; padding: 3px 8px; border-radius: 6px; }
+
+/* Update Button */
+.update-btn {
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  color: #fff;
+  border: 1px solid rgba(59, 130, 246, 0.5);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 5px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
+  transition: all 0.15s ease;
+}
+.update-btn:active { transform: scale(0.95); opacity: 0.9; }
+
+.fx-ticker { background: rgba(0,0,0,0.4); border: 1px solid var(--border); padding: 8px 12px; border-radius: 10px; font-size: 12px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+
+/* Tabs */
+.tabs-nav { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 6px; margin-bottom: 12px; }
+.tab-btn { background: var(--card); border: 1px solid var(--border); color: var(--text-muted); padding: 8px 14px; border-radius: 8px; font-size: 12px; font-weight: 700; white-space: nowrap; cursor: pointer; }
+.tab-btn.active { background: var(--green); color: white; border-color: var(--green); }
+.tab-content { display: none; }
+.tab-content.active { display: block; animation: fadeIn 0.2s ease-in; }
+
+@keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+
+/* Cards & Components */
+.card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 14px; margin-bottom: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.25); }
+.region-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; }
+.region-name { font-size: 15px; font-weight: 700; color: white; }
+.region-role { font-size: 10px; color: var(--blue); font-weight: 600; text-transform: uppercase; }
+.price-display { font-size: 24px; font-weight: 800; color: #fff; margin: 4px 0; }
+.sub-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; background: rgba(0,0,0,0.3); padding: 8px; border-radius: 8px; font-size: 11px; text-align: center; margin: 6px 0; }
+
+/* Form Controls */
+.input-label { font-size: 12px; font-weight: 600; color: var(--text-muted); margin-bottom: 4px; display: block; }
+.input-field { width: 100%; background: rgba(0,0,0,0.4); border: 1px solid var(--border); padding: 10px; color: white; border-radius: 8px; font-size: 13px; margin-bottom: 10px; }
+.btn-primary { width: 100%; background: var(--green); color: white; border: none; padding: 12px; border-radius: 8px; font-weight: 700; font-size: 13px; cursor: pointer; }
+.btn-primary:active { opacity: 0.85; }
+
+/* Result Boxes */
+.result-box { background: rgba(0,0,0,0.4); border-left: 4px solid var(--green); border-radius: 8px; padding: 12px; font-size: 12px; line-height: 1.6; margin-top: 10px; }
+.result-box.danger { border-left-color: var(--red); background: rgba(239, 68, 68, 0.1); }
+.result-box.warning { border-left-color: var(--yellow); background: rgba(245, 158, 11, 0.1); }
+
+/* Range Slider */
+.slider-wrap { margin-bottom: 10px; }
+.slider-header { display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted); margin-bottom: 4px; }
+.range-slider { width: 100%; accent-color: var(--green); }

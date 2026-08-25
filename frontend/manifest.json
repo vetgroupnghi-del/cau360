@@ -1,0 +1,22 @@
+{
+  "name": "CAU360 — Market Intelligence App",
+  "short_name": "CAU360",
+  "description": "Hệ thống tình báo thị trường cau Việt Nam ↔ Trung Quốc thời gian thực",
+  "start_url": "/app/",
+  "display": "standalone",
+  "background_color": "#0a0f1d",
+  "theme_color": "#10b981",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='48' fill='%2310b981'/><text x='50' y='65' font-size='42' font-weight='bold' fill='%23ffffff' text-anchor='middle'>360</text></svg>",
+      "sizes": "192x192",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='48' fill='%2310b981'/><text x='50' y='65' font-size='42' font-weight='bold' fill='%23ffffff' text-anchor='middle'>360</text></svg>",
+      "sizes": "512x512",
+      "type": "image/svg+xml"
+    }
+  ]
+}
